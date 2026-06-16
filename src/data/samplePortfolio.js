@@ -42,6 +42,7 @@ export const SAMPLE_FX_AUD_PER_UNIT = {
   AUD: 1,
   USD: 1.5342,
   EUR: 1.64,
+  MYR: 0.33,
 }
 
 /**

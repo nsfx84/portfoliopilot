@@ -1,6 +1,61 @@
+import { getSpot } from './fx.js'
+
 /**
  * Convert holdings + cached quotes + AUD FX map into dashboard row metrics.
  */
+
+/**
+ * Convert a live quote price in native currency to AUD.
+ *
+ * @param {number | { price?: number, lastPrice?: number, currency?: string, market?: string }} rawOrQuote
+ * @param {string | Record<string, number>} [currencyOrFx]
+ * @param {string} [market]
+ * @param {Record<string, number>} [fx]
+ * @returns {number | null}
+ */
+export function convertQuoteToAud(rawOrQuote, currencyOrFx, market, fx) {
+  let raw
+  let ccy
+  let mkt
+  let fxBundle
+
+  if (
+    typeof rawOrQuote === 'object' &&
+    rawOrQuote != null &&
+    ('price' in rawOrQuote || 'lastPrice' in rawOrQuote || 'currency' in rawOrQuote)
+  ) {
+    raw = rawOrQuote.price ?? rawOrQuote.lastPrice
+    ccy = rawOrQuote.currency
+    mkt = rawOrQuote.market ?? ''
+    fxBundle =
+      currencyOrFx && typeof currencyOrFx === 'object' && !Array.isArray(currencyOrFx)
+        ? currencyOrFx
+        : fx ?? {}
+  } else {
+    raw = rawOrQuote
+    ccy = currencyOrFx
+    mkt = market ?? ''
+    fxBundle = fx ?? {}
+  }
+
+  if (raw == null || !Number.isFinite(raw)) return null
+
+  const c = String(ccy || 'USD').toUpperCase()
+  if (c === 'AUD') return raw
+
+  const audPerUnit = getSpot(c, 'AUD', fxBundle)
+  if (audPerUnit != null && audPerUnit > 0) {
+    return raw * audPerUnit
+  }
+
+  if (mkt === 'BIT' && c === 'EUR') {
+    const eurAud = getSpot('EUR', 'AUD', fxBundle)
+    if (eurAud != null && eurAud > 0) return raw * eurAud
+  }
+
+  console.warn(`[convertQuoteToAud] unsupported currency ${c}`)
+  return 0
+}
 
 /**
  * @param {{

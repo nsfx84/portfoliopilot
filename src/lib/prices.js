@@ -23,7 +23,7 @@ let sessionCache = null
 /**
  * @typedef {{
  *   prices: PriceMap,
- *   fx: { AUDUSD?: number, AUDEUR?: number },
+ *   fx: { AUDUSD?: number, AUDEUR?: number, AUDMYR?: number },
  *   fetchedAt: string,
  *   failedTickers: string[],
  * }} QuotesBundle

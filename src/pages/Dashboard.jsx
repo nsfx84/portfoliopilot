@@ -4,8 +4,13 @@ import { collection, onSnapshot } from 'firebase/firestore'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { SAMPLE_FX_AUD_PER_UNIT } from '../data/samplePortfolio'
 import { db } from '../lib/firebase'
+import { buildFxAudPerUnit } from '../lib/fx.js'
 import { fetchQuotes } from '../lib/prices.js'
-import { aggregateParcelsToHoldings, summarisePortfolio } from '../lib/valuation'
+import {
+  aggregateParcelsToHoldings,
+  convertQuoteToAud,
+  summarisePortfolio,
+} from '../lib/valuation'
 
 const aud = new Intl.NumberFormat('en-AU', {
   style: 'currency',
@@ -28,37 +33,6 @@ function formatPct(v) {
   if (v == null || Number.isNaN(v)) return '—'
   const sign = v > 0 ? '+' : ''
   return `${sign}${v.toFixed(2)}%`
-}
-
-function buildFxAudPerUnit(fx) {
-  const u = fx?.AUDUSD
-  const e = fx?.AUDEUR
-  return {
-    AUD: 1,
-    USD: u != null && u > 0 ? 1 / u : SAMPLE_FX_AUD_PER_UNIT.USD,
-    EUR:
-      e != null && e > 0
-        ? 1 / e
-        : (SAMPLE_FX_AUD_PER_UNIT.EUR ?? SAMPLE_FX_AUD_PER_UNIT.USD),
-  }
-}
-
-/**
- * Spot in quote ccy → AUD using Yahoo FX convention (AUDUSD = USD per 1 AUD).
- */
-function convertQuoteToAud(raw, currencyUpper, market, fx) {
-  if (raw == null || !Number.isFinite(raw)) return null
-  const c = String(currencyUpper || 'USD').toUpperCase()
-  if (c === 'AUD') return raw
-  const audUsd = fx?.AUDUSD
-  const audEur = fx?.AUDEUR
-  if (market === 'BIT' && c === 'EUR' && audEur != null && audEur > 0) {
-    return raw / audEur
-  }
-  if (audUsd != null && audUsd > 0) {
-    return raw / audUsd
-  }
-  return null
 }
 
 function buildLiveHoldingRow(holding, quote, fx) {
@@ -282,8 +256,8 @@ export function Dashboard() {
 
   const fxAudPerUnit = useMemo(
     () =>
-      priceBundle?.fx && priceBundle.fx.AUDUSD
-        ? buildFxAudPerUnit(priceBundle.fx)
+      priceBundle?.fx && Object.keys(priceBundle.fx).length > 0
+        ? buildFxAudPerUnit(priceBundle.fx, SAMPLE_FX_AUD_PER_UNIT)
         : SAMPLE_FX_AUD_PER_UNIT,
     [priceBundle],
   )

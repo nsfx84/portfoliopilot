@@ -147,7 +147,7 @@ export async function buildPricesPayload(tickers) {
     }
   }
 
-  const yahooBatch = [...stockTickers, 'AUDUSD=X', 'AUDEUR=X']
+  const yahooBatch = [...stockTickers, 'AUDUSD=X', 'AUDEUR=X', 'AUDMYR=X']
   const yahooUnique = [...new Set(yahooBatch)]
 
   const yahooResults = await Promise.all(
@@ -165,6 +165,7 @@ export async function buildPricesPayload(tickers) {
 
   let fxAUDUSD = yahooMap['AUDUSD=X']?.price
   let fxAUDEUR = yahooMap['AUDEUR=X']?.price
+  let fxAUDMYR = yahooMap['AUDMYR=X']?.price
 
   if (fxAUDUSD == null || !Number.isFinite(fxAUDUSD)) {
     const row = await yahooQuoteSafe('AUDUSD=X')
@@ -181,6 +182,17 @@ export async function buildPricesPayload(tickers) {
       fxAUDEUR = 1 / p
     }
   }
+  if (fxAUDMYR == null || !Number.isFinite(fxAUDMYR)) {
+    const row = await yahooQuoteSafe('AUDMYR=X')
+    fxAUDMYR = row.price
+  }
+  if (fxAUDMYR == null || !Number.isFinite(fxAUDMYR)) {
+    const myrAud = await yahooQuoteSafe('MYRAUD=X')
+    const p = myrAud.price
+    if (p != null && Number.isFinite(p) && p > 0) {
+      fxAUDMYR = 1 / p
+    }
+  }
 
   const fx = {}
   if (fxAUDUSD != null && Number.isFinite(fxAUDUSD)) {
@@ -188,6 +200,9 @@ export async function buildPricesPayload(tickers) {
   }
   if (fxAUDEUR != null && Number.isFinite(fxAUDEUR)) {
     fx.AUDEUR = fxAUDEUR
+  }
+  if (fxAUDMYR != null && Number.isFinite(fxAUDMYR)) {
+    fx.AUDMYR = fxAUDMYR
   }
 
   const idSet = [...new Set(cryptoJobs.map((j) => j.id))]

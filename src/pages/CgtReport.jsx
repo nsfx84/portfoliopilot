@@ -3,6 +3,7 @@ import { collection, onSnapshot } from 'firebase/firestore'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { db } from '../lib/firebase'
 import { fetchQuotes } from '../lib/prices.js'
+import { convertQuoteToAud } from '../lib/valuation.js'
 import {
   calculateAllMethodsComparison,
   calculateCgtForFY,
@@ -37,21 +38,6 @@ const qtyFmt = new Intl.NumberFormat('en-AU', {
 
 function fyLabel(fy) {
   return `FY${String(fy).slice(-2)}`
-}
-
-function convertQuoteToAud(raw, currencyUpper, market, fx) {
-  if (raw == null || !Number.isFinite(raw)) return null
-  const c = String(currencyUpper || 'USD').toUpperCase()
-  if (c === 'AUD') return raw
-  const audUsd = fx?.AUDUSD
-  const audEur = fx?.AUDEUR
-  if (market === 'BIT' && c === 'EUR' && audEur != null && audEur > 0) {
-    return raw / audEur
-  }
-  if (audUsd != null && audUsd > 0) {
-    return raw / audUsd
-  }
-  return null
 }
 
 function hasSalesInFinancialYear(transactions, fy) {

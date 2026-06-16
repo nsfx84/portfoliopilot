@@ -3,6 +3,12 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 
+if (import.meta.env.DEV) {
+  import('./lib/portfolioService.js').then((m) => {
+    window.portfolioService = m
+  })
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <App />

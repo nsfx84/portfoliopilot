@@ -1,39 +1,9 @@
 import { collection, getDocs } from 'firebase/firestore'
 import { SAMPLE_FX_AUD_PER_UNIT } from '../data/samplePortfolio.js'
 import { db } from '../lib/firebase.js'
+import { buildFxAudPerUnit } from '../lib/fx.js'
 import { fetchQuotes } from '../lib/prices.js'
-import { aggregateParcelsToHoldings } from '../lib/valuation.js'
-
-function buildFxAudPerUnit(fx) {
-  const u = fx?.AUDUSD
-  const e = fx?.AUDEUR
-  return {
-    AUD: 1,
-    USD: u != null && u > 0 ? 1 / u : SAMPLE_FX_AUD_PER_UNIT.USD,
-    EUR:
-      e != null && e > 0
-        ? 1 / e
-        : (SAMPLE_FX_AUD_PER_UNIT.EUR ?? SAMPLE_FX_AUD_PER_UNIT.USD),
-  }
-}
-
-/**
- * Spot in quote ccy → AUD using Yahoo FX convention (AUDUSD = USD per 1 AUD).
- */
-function convertQuoteToAud(raw, currencyUpper, market, fx) {
-  if (raw == null || !Number.isFinite(raw)) return null
-  const c = String(currencyUpper || 'USD').toUpperCase()
-  if (c === 'AUD') return raw
-  const audUsd = fx?.AUDUSD
-  const audEur = fx?.AUDEUR
-  if (market === 'BIT' && c === 'EUR' && audEur != null && audEur > 0) {
-    return raw / audEur
-  }
-  if (audUsd != null && audUsd > 0) {
-    return raw / audUsd
-  }
-  return null
-}
+import { aggregateParcelsToHoldings, convertQuoteToAud } from '../lib/valuation.js'
 
 function buildHoldingRow(holding, quote, fx) {
   const qty = holding.quantity
@@ -50,6 +20,28 @@ function buildHoldingRow(holding, quote, fx) {
     assetClass: holding.assetClass,
     quoteCurrency: holding.quoteCurrency,
     marketValueAud,
+  }
+}
+
+/**
+ * Fetch a single live quote (dev console: `await window.portfolioService.fetchQuote('5171.KL')`).
+ *
+ * @param {string} ticker
+ */
+export async function fetchQuote(ticker) {
+  const t = String(ticker || '').trim()
+  if (!t) throw new Error('ticker required')
+  const bundle = await fetchQuotes([t])
+  const row = bundle.prices[t] || {}
+  return {
+    ticker: t,
+    lastPrice: row.lastPrice ?? null,
+    currency: row.currency ?? null,
+    regularMarketPreviousClose: row.regularMarketPreviousClose ?? null,
+    regularMarketChangePercent: row.regularMarketChangePercent ?? null,
+    error: row.error,
+    fx: bundle.fx,
+    fetchedAt: bundle.fetchedAt,
   }
 }
 
@@ -93,8 +85,8 @@ export async function getTotalValueByCategory(uid) {
   const tickers = [...new Set(parcels.map((p) => p.ticker))].sort()
   const priceBundle = await fetchQuotes(tickers)
   const fxAudPerUnit =
-    priceBundle.fx?.AUDUSD
-      ? buildFxAudPerUnit(priceBundle.fx)
+    priceBundle.fx && Object.keys(priceBundle.fx).length > 0
+      ? buildFxAudPerUnit(priceBundle.fx, SAMPLE_FX_AUD_PER_UNIT)
       : SAMPLE_FX_AUD_PER_UNIT
   const holdings = aggregateParcelsToHoldings(parcels, fxAudPerUnit)
   const fx = priceBundle.fx || {}
