@@ -3,6 +3,7 @@ import { SAMPLE_FX_AUD_PER_UNIT } from '../data/samplePortfolio.js'
 import { db } from '../lib/firebase.js'
 import { buildFxAudPerUnit } from '../lib/fx.js'
 import { fetchQuotes } from '../lib/prices.js'
+import { isKlseStock } from '../lib/tickerMarket.js'
 import { aggregateParcelsToHoldings, convertQuoteToAud } from '../lib/valuation.js'
 
 function buildHoldingRow(holding, quote, fx) {
@@ -10,7 +11,7 @@ function buildHoldingRow(holding, quote, fx) {
   const market = holding.market ?? ''
   const q = quote || {}
   const price = q.lastPrice
-  const ccy = (q.currency || 'USD').toString()
+  const ccy = String(q.currency || holding.quoteCurrency || 'USD').toUpperCase()
   const priceAud = convertQuoteToAud(price, ccy, market, fx)
   const marketValueAud =
     priceAud != null && Number.isFinite(priceAud) ? priceAud * qty : 0
@@ -18,9 +19,18 @@ function buildHoldingRow(holding, quote, fx) {
   return {
     ticker: holding.ticker,
     assetClass: holding.assetClass,
-    quoteCurrency: holding.quoteCurrency,
+    quoteCurrency: ccy,
     marketValueAud,
   }
+}
+
+function bucketHoldingValue(row) {
+  const ac = String(row.assetClass || 'OTHER').toUpperCase()
+  if (isKlseStock(row.ticker, row.quoteCurrency)) return 'stocks'
+  if (ac === 'ETF') return 'etfs'
+  if (ac === 'CRYPTO') return 'crypto'
+  if (STOCK_CLASSES.has(ac)) return 'stocks'
+  return 'stocks'
 }
 
 /**
@@ -56,7 +66,7 @@ const STOCK_CLASSES = new Set(['ASX', 'US', 'NASDAQ', 'NYSE'])
  *   etfs: number,
  *   crypto: number,
  *   super: number,
- *   holdings: Array<{ assetClass: string, quoteCurrency: string, marketValueAud: number }>,
+ *   holdings: Array<{ ticker: string, assetClass: string, quoteCurrency: string, marketValueAud: number }>,
  * }>}
  */
 export async function getTotalValueByCategory(uid) {
@@ -99,10 +109,9 @@ export async function getTotalValueByCategory(uid) {
   let crypto = 0
 
   for (const row of rows) {
-    const ac = String(row.assetClass || 'OTHER').toUpperCase()
-    if (ac === 'ETF') etfs += row.marketValueAud
-    else if (ac === 'CRYPTO') crypto += row.marketValueAud
-    else if (STOCK_CLASSES.has(ac)) stocks += row.marketValueAud
+    const bucket = bucketHoldingValue(row)
+    if (bucket === 'etfs') etfs += row.marketValueAud
+    else if (bucket === 'crypto') crypto += row.marketValueAud
     else stocks += row.marketValueAud
   }
 
@@ -112,6 +121,7 @@ export async function getTotalValueByCategory(uid) {
     crypto,
     super: 0,
     holdings: rows.map((r) => ({
+      ticker: r.ticker,
       assetClass: r.assetClass,
       quoteCurrency: r.quoteCurrency,
       marketValueAud: r.marketValueAud,

@@ -10,6 +10,10 @@ import {
 } from 'firebase/firestore'
 import { COLLECTIONS } from '../data/schemas.js'
 import { db } from '../lib/firebase.js'
+import {
+  fxBucketForHolding,
+  geographicRegionForHolding,
+} from './tickerMarket.js'
 import { getTotalValueByCategory } from './portfolioService.js'
 
 /** @param {number[]} values */
@@ -20,7 +24,7 @@ export function sumAud(values) {
 /**
  * @param {Array<{ currentValueAUD?: number }>} properties
  * @param {Array<{ currency?: string, balanceAUD?: number }>} cashAccounts
- * @param {Array<{ assetClass?: string, marketValueAud?: number }>} holdings
+ * @param {Array<{ ticker?: string, assetClass?: string, quoteCurrency?: string, marketValueAud?: number }>} holdings
  */
 export function computeFXExposure(properties, cashAccounts, holdings) {
   let aud = 0
@@ -39,11 +43,10 @@ export function computeFXExposure(properties, cashAccounts, holdings) {
 
   for (const holding of holdings) {
     const value = Number(holding.marketValueAud) || 0
-    if (String(holding.assetClass || '').toUpperCase() === 'CRYPTO') {
-      crypto += value
-    } else {
-      aud += value
-    }
+    const bucket = fxBucketForHolding(holding)
+    if (bucket === 'crypto') crypto += value
+    else if (bucket === 'myr') myr += value
+    else aud += value
   }
 
   return { aud, myr, crypto }
@@ -52,11 +55,12 @@ export function computeFXExposure(properties, cashAccounts, holdings) {
 /**
  * @param {Array<{ country?: string, currentValueAUD?: number }>} properties
  * @param {Array<{ currency?: string, balanceAUD?: number }>} cashAccounts
- * @param {Array<{ marketValueAud?: number }>} holdings
+ * @param {Array<{ ticker?: string, assetClass?: string, quoteCurrency?: string, marketValueAud?: number }>} holdings
  */
 export function computeGeographicSplit(properties, cashAccounts, holdings) {
   let au = 0
   let my = 0
+  let us = 0
   let borderless = 0
 
   for (const property of properties) {
@@ -72,10 +76,15 @@ export function computeGeographicSplit(properties, cashAccounts, holdings) {
   }
 
   for (const holding of holdings) {
-    borderless += Number(holding.marketValueAud) || 0
+    const value = Number(holding.marketValueAud) || 0
+    const region = geographicRegionForHolding(holding)
+    if (region === 'my') my += value
+    else if (region === 'au') au += value
+    else if (region === 'us') us += value
+    else borderless += value
   }
 
-  return { au, my, borderless }
+  return { au, my, us, borderless }
 }
 
 /**
@@ -86,7 +95,7 @@ export function computeGeographicSplit(properties, cashAccounts, holdings) {
  *   etfs: number,
  *   crypto: number,
  *   super: number,
- *   holdings?: Array<{ assetClass?: string, quoteCurrency?: string, marketValueAud?: number }>,
+ *   holdings?: Array<{ ticker?: string, assetClass?: string, quoteCurrency?: string, marketValueAud?: number }>,
  * }} portfolio
  * @param {Array<{ country?: string, currentValueAUD?: number }>} properties
  * @param {Array<{ currency?: string, balanceAUD?: number }>} cashAccounts

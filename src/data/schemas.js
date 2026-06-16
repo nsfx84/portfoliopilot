@@ -15,15 +15,29 @@ export const COLLECTIONS = {
 }
 
 /**
+ * Yahoo Finance ticker suffix convention (canonical `ticker` on holdings / parcels):
+ *
+ * | Market              | Suffix   | Example    | Quote ccy |
+ * |---------------------|----------|------------|-----------|
+ * | ASX (Australia)     | `.AX`    | `CBA.AX`   | AUD       |
+ * | KLSE (Malaysia)     | `.KL`    | `5171.KL`  | MYR       |
+ * | US (NASDAQ/NYSE)    | (none)   | `AAPL`     | USD       |
+ * | Crypto (Yahoo)      | `-USD`   | `BTC-USD`  | USD       |
+ *
+ * Suffixes are passed through to Yahoo Finance unchanged. Net-worth FX exposure
+ * and geographic charts infer currency/region from the live quote and suffix.
+ */
+
+/**
  * holdings — aggregated position metadata per ticker / instrument (derivable from parcels).
  * Typically one doc per userId + ticker composite key or deterministic doc id.
  *
  * Fields:
  * - userId: string — Firebase Auth uid
- * - ticker: string — canonical symbol (e.g. CBA.AX, AAPL, BTC-AUD)
+ * - ticker: string — canonical Yahoo symbol (e.g. CBA.AX, AAPL, 5171.KL, BTC-USD)
  * - displayName: string — optional human label
- * - assetClass: 'ASX' | 'US' | 'CRYPTO' | 'ETF'
- * - quoteCurrency: string — ISO 4217 for fiat (AUD, USD), or synthetic for crypto pairs
+ * - assetClass: 'ASX' | 'US' | 'NASDAQ' | 'NYSE' | 'ETF' | 'CRYPTO' | 'OTHER'
+ * - quoteCurrency: string — ISO 4217 for fiat (AUD, USD, MYR), or synthetic for crypto pairs
  * - totalQuantity: number — net on-hand units (sum of parcel remainingQuantity)
  * - notes: string — optional
  * - createdAt: Timestamp
@@ -50,7 +64,7 @@ export const HOLDINGS_SCHEMA = {
  * Fields:
  * - userId: string
  * - holdingId: string — optional reference to holdings doc id
- * - ticker: string — aligns with holdings.ticker
+ * - ticker: string — aligns with holdings.ticker (Yahoo suffix convention; see file header)
  * - acquisitionTxnId: string — originating buy transaction id (optional but recommended)
  * - acquiredAt: Timestamp — settlement / trade date for CGT ordering
  * - originalQuantity: number — units acquired in this parcel
