@@ -1,3 +1,4 @@
+import { PropertyList } from '../components/networth/PropertyList.jsx'
 import { useNetWorth } from '../hooks/useNetWorth.js'
 
 const aud = new Intl.NumberFormat('en-AU', {
@@ -33,7 +34,7 @@ function SummaryCard({ label, primary, primaryClass, hint, loading }) {
 }
 
 export function NetWorth() {
-  const { data, loading, error } = useNetWorth()
+  const { data, loading, error, refetch } = useNetWorth()
 
   return (
     <div className="space-y-10">
@@ -88,6 +89,8 @@ export function NetWorth() {
           />
         </div>
       </section>
+
+      <PropertyList onNetWorthChange={refetch} />
     </div>
   )
 }
