@@ -91,7 +91,7 @@ src/components/networth/
   ├── LiabilityList.jsx                 // Table + add/edit modal
   └── LiabilityForm.jsx                 // Modal form for CRUD
 
-src/services/netWorthService.js         // Firestore CRUD + aggregation
+src/lib/netWorthService.js         // Firestore CRUD + aggregation
 src/hooks/useNetWorth.js                // React Query hook returning computed totals
 ```
 
@@ -100,8 +100,8 @@ src/hooks/useNetWorth.js                // React Query hook returning computed t
 ## Integration Points
 
 ```
-src/services/portfolioService.js  ← EXISTING: pull stock/ETF/crypto current values
-src/services/netWorthService.js   ← NEW: combine with property/cash/liabilities
+src/lib/portfolioService.js  ← EXISTING: pull stock/ETF/crypto current values
+src/lib/netWorthService.js   ← NEW: combine with property/cash/liabilities
 src/contexts/AuthContext.jsx      ← EXISTING: reuse for user.uid
 src/components/charts/*.jsx       ← EXISTING: reuse Chart.js wrapper components
 src/router.jsx                    ← Add /networth route
@@ -165,7 +165,7 @@ async function getNetWorthSummary(uid) {
 ## Suggested Cursor Plan-mode prompts
 
 **Task 1:**
-> Create `src/services/netWorthService.js` implementing CRUD for three Firestore collections (`properties`, `cashAccounts`, `liabilities`) under `users/{uid}/`. Use the existing `db` import from `firebase.js`. Include `getNetWorthSummary(uid)` that combines these with the existing portfolio service totals. Match the existing service file conventions in this codebase.
+> Create `src/lib/netWorthService.js` implementing CRUD for three Firestore collections (`properties`, `cashAccounts`, `liabilities`) under `users/{uid}/`. Use the existing `db` import from `firebase.js`. Include `getNetWorthSummary(uid)` that combines these with the existing portfolio service totals. Match the existing service file conventions in this codebase.
 
 **Task 2:**
 > Add `/networth` route to the router with auth gating. Create `src/pages/NetWorth.jsx` that calls `useNetWorth()` and renders 4 stat cards: Total Assets, Total Liabilities, Net Worth, Liquid Wealth. Match the existing page layout pattern. Add a "Net Worth" item to the sidebar nav.
