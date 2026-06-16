@@ -57,4 +57,8 @@ function pricesApiDevPlugin() {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [pricesApiDevPlugin(), tailwindcss(), react()],
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.js'],
+  },
 })

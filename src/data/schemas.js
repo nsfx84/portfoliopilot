@@ -8,6 +8,10 @@ export const COLLECTIONS = {
   transactions: 'transactions',
   fxRates: 'fxRates',
   priceCache: 'priceCache',
+  properties: 'properties',
+  cashAccounts: 'cashAccounts',
+  liabilities: 'liabilities',
+  netWorthSnapshots: 'netWorthSnapshots',
 }
 
 /**
@@ -161,5 +165,109 @@ export const PRICE_CACHE_SCHEMA = {
     'regularMarketChangePercent',
     'shortName',
     'updatedAt',
+  ],
+}
+
+/**
+ * properties — manually-entered real estate under users/{uid}/properties/{propertyId}.
+ *
+ * Fields:
+ * - name: string
+ * - type: 'residential' | 'commercial'
+ * - country: 'AU' | 'MY'
+ * - ownership: 'Matterhorn Trust' | 'joint' | 'wife' | 'personal'
+ * - currentValueAUD: number
+ * - grossRentAUD: number — annual
+ * - annualCostsAUD: number
+ * - createdAt: Timestamp
+ * - updatedAt: Timestamp
+ */
+export const PROPERTIES_SCHEMA = {
+  collection: COLLECTIONS.properties,
+  fields: [
+    'name',
+    'type',
+    'country',
+    'ownership',
+    'currentValueAUD',
+    'grossRentAUD',
+    'annualCostsAUD',
+    'createdAt',
+    'updatedAt',
+  ],
+}
+
+/**
+ * cashAccounts — bank / offset / savings balances under users/{uid}/cashAccounts/{accountId}.
+ *
+ * Fields:
+ * - name: string
+ * - provider: string
+ * - currency: 'AUD' | 'MYR'
+ * - balanceAUD: number — always stored in AUD-equivalent
+ * - interestRate: number
+ * - type: 'savings' | 'offset' | 'checking'
+ * - createdAt: Timestamp
+ * - updatedAt: Timestamp
+ */
+export const CASH_ACCOUNTS_SCHEMA = {
+  collection: COLLECTIONS.cashAccounts,
+  fields: [
+    'name',
+    'provider',
+    'currency',
+    'balanceAUD',
+    'interestRate',
+    'type',
+    'createdAt',
+    'updatedAt',
+  ],
+}
+
+/**
+ * liabilities — mortgages and other debt under users/{uid}/liabilities/{liabilityId}.
+ *
+ * Fields:
+ * - name: string
+ * - linkedPropertyId: string — optional FK to properties doc
+ * - lender: string
+ * - balanceAUD: number
+ * - interestRate: number
+ * - type: 'mortgage' | 'credit_card' | 'personal' | 'car_loan'
+ * - createdAt: Timestamp
+ * - updatedAt: Timestamp
+ */
+export const LIABILITIES_SCHEMA = {
+  collection: COLLECTIONS.liabilities,
+  fields: [
+    'name',
+    'linkedPropertyId',
+    'lender',
+    'balanceAUD',
+    'interestRate',
+    'type',
+    'createdAt',
+    'updatedAt',
+  ],
+}
+
+/**
+ * netWorthSnapshots — daily/weekly net worth history under users/{uid}/netWorthSnapshots/{date}.
+ *
+ * Fields:
+ * - date: string — ISO 'YYYY-MM-DD'
+ * - totalAssets: number
+ * - totalLiabilities: number
+ * - netWorth: number
+ * - breakdown: { property, cash, stocks, crypto, super, other? }
+ */
+export const NET_WORTH_SNAPSHOTS_SCHEMA = {
+  collection: COLLECTIONS.netWorthSnapshots,
+  fields: [
+    'date',
+    'totalAssets',
+    'totalLiabilities',
+    'netWorth',
+    'breakdown',
   ],
 }
