@@ -1,3 +1,4 @@
+import { CashAccountList } from '../components/networth/CashAccountList.jsx'
 import { PropertyList } from '../components/networth/PropertyList.jsx'
 import { useNetWorth } from '../hooks/useNetWorth.js'
 
@@ -91,6 +92,8 @@ export function NetWorth() {
       </section>
 
       <PropertyList onNetWorthChange={refetch} />
+
+      <CashAccountList onNetWorthChange={refetch} />
     </div>
   )
 }
