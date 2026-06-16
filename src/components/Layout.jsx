@@ -102,6 +102,19 @@ export function Layout() {
               Income Report
             </NavLink>
             <NavLink
+              to="/networth"
+              className={({ isActive }) =>
+                [
+                  navBase,
+                  isActive
+                    ? 'bg-slate-800 text-white ring-1 ring-slate-600/70 shadow-md shadow-black/25'
+                    : 'text-slate-400 hover:bg-slate-800/90 hover:text-white',
+                ].join(' ')
+              }
+            >
+              Net Worth
+            </NavLink>
+            <NavLink
               to="/settings"
               className={({ isActive }) =>
                 [
