@@ -12,6 +12,10 @@ export const COLLECTIONS = {
   cashAccounts: 'cashAccounts',
   liabilities: 'liabilities',
   netWorthSnapshots: 'netWorthSnapshots',
+  statements: 'statements',
+  /** Bank/CC statement rows — separate from portfolio ledger `transactions`. */
+  spendingTransactions: 'spendingTransactions',
+  usage: 'usage',
 }
 
 /**
@@ -283,5 +287,111 @@ export const NET_WORTH_SNAPSHOTS_SCHEMA = {
     'totalLiabilities',
     'netWorth',
     'breakdown',
+  ],
+}
+
+export const STATEMENT_PROVIDERS = {
+  amex: 'amex',
+  cba: 'cba',
+  bom: 'bom',
+  auto: 'auto',
+  unknown: 'unknown',
+}
+
+export const STATEMENT_STATUSES = {
+  pending: 'pending',
+  processing: 'processing',
+  parsed: 'parsed',
+  error: 'error',
+}
+
+/**
+ * statements — uploaded PDF bank/CC statements under users/{uid}/statements/{statementId}.
+ *
+ * Fields:
+ * - filename: string
+ * - uploadedAt: Timestamp
+ * - storagePath: string — Firebase Storage path
+ * - status: 'pending' | 'processing' | 'parsed' | 'error'
+ * - errorMessage: string — optional when status is error
+ * - provider: 'amex' | 'cba' | 'bom' | 'auto' | 'unknown'
+ * - statementDate: string — optional ISO date 'YYYY-MM-DD'
+ * - transactionCount: number
+ * - totalDebits: number
+ * - totalCredits: number
+ * - costUsd: number — Claude API cost for this statement
+ */
+export const STATEMENTS_SCHEMA = {
+  collection: COLLECTIONS.statements,
+  fields: [
+    'filename',
+    'uploadedAt',
+    'storagePath',
+    'status',
+    'errorMessage',
+    'provider',
+    'statementDate',
+    'transactionCount',
+    'totalDebits',
+    'totalCredits',
+    'costUsd',
+  ],
+}
+
+/**
+ * spendingTransactions — parsed spending rows from statements under
+ * users/{uid}/spendingTransactions/{transactionId}.
+ *
+ * Stored separately from portfolio ledger `transactions` (Sharesight BUY/SELL rows).
+ *
+ * Fields:
+ * - date: string — 'YYYY-MM-DD'
+ * - merchant: string
+ * - merchantNormalised: string
+ * - amount: number — AUD; positive = spend, negative = refund
+ * - category: string — e.g. 'Groceries', 'Dining'
+ * - source: { statementId: string, account: string }
+ * - createdAt: Timestamp
+ * - updatedAt: Timestamp
+ * - userCategorised: boolean
+ */
+export const SPENDING_TRANSACTIONS_SCHEMA = {
+  collection: COLLECTIONS.spendingTransactions,
+  fields: [
+    'date',
+    'merchant',
+    'merchantNormalised',
+    'amount',
+    'category',
+    'source',
+    'createdAt',
+    'updatedAt',
+    'userCategorised',
+  ],
+}
+
+export const DEFAULT_MONTHLY_USAGE = {
+  statementsProcessed: 0,
+  totalCostUsd: 0,
+}
+
+/**
+ * usage — per-user monthly API usage under users/{uid}/usage/{yyyymm}.
+ *
+ * Document id: 'YYYY-MM' (e.g. '2026-06').
+ *
+ * Fields:
+ * - month: string — 'YYYY-MM'
+ * - statementsProcessed: number
+ * - totalCostUsd: number
+ * - lastReset: Timestamp — optional
+ */
+export const USAGE_SCHEMA = {
+  collection: COLLECTIONS.usage,
+  fields: [
+    'month',
+    'statementsProcessed',
+    'totalCostUsd',
+    'lastReset',
   ],
 }
