@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { isFirebaseConfigured } from '../lib/firebase'
-import { useAuth } from '../contexts/AuthContext.jsx'
+import {
+  NOT_INVITED_MESSAGE,
+  useAuth,
+} from '../contexts/AuthContext.jsx'
 
 export function Login() {
   const { signIn, signUp } = useAuth()
@@ -27,7 +30,11 @@ export function Login() {
         await signUp(email.trim(), password)
       }
     } catch (err) {
-      setError(err?.message ?? 'Authentication failed.')
+      if (err?.code === 'auth/not-invited') {
+        setError(NOT_INVITED_MESSAGE)
+      } else {
+        setError(err?.message ?? 'Authentication failed.')
+      }
     } finally {
       setBusy(false)
     }
