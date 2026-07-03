@@ -3,7 +3,6 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore'
 import { getStorage } from 'firebase-admin/storage'
 import { getAuth } from 'firebase-admin/auth'
 import Anthropic from '@anthropic-ai/sdk'
-import pdfParse from 'pdf-parse'
 
 const MAX_STATEMENTS_PER_MONTH = 50
 const BATCH_SIZE = 400
@@ -169,6 +168,7 @@ export default async function handler(req, res) {
     // 6. Extract text with pdf-parse
     let pdfText
     try {
+      const { default: pdfParse } = await import('pdf-parse')
       const pdfData = await pdfParse(pdfBuffer)
       pdfText = pdfData.text?.trim() ?? ''
     } catch (err) {
