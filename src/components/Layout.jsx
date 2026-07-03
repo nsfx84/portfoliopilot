@@ -115,6 +115,19 @@ export function Layout() {
               Net Worth
             </NavLink>
             <NavLink
+              to="/statements"
+              className={({ isActive }) =>
+                [
+                  navBase,
+                  isActive
+                    ? 'bg-slate-800 text-white ring-1 ring-slate-600/70 shadow-md shadow-black/25'
+                    : 'text-slate-400 hover:bg-slate-800/90 hover:text-white',
+                ].join(' ')
+              }
+            >
+              Statements
+            </NavLink>
+            <NavLink
               to="/settings"
               className={({ isActive }) =>
                 [

@@ -8,6 +8,7 @@ import { Import } from './pages/Import.jsx'
 import { Login } from './pages/Login.jsx'
 import { NetWorth } from './pages/NetWorth.jsx'
 import { Settings } from './pages/Settings.jsx'
+import { Statements } from './pages/Statements.jsx'
 import { Transactions } from './pages/Transactions.jsx'
 
 function AppRoutes() {
@@ -34,6 +35,7 @@ function AppRoutes() {
         <Route path="cgt-report" element={<CgtReport />} />
         <Route path="income-report" element={<IncomeReport />} />
         <Route path="networth" element={<NetWorth />} />
+        <Route path="statements" element={<Statements />} />
         <Route path="settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
