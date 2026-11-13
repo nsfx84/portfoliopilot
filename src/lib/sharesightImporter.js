@@ -34,7 +34,12 @@ export function yahooTickerSuffix(marketCode) {
   return MARKET_SUFFIX[m] ?? ''
 }
 
-function buildYahooTicker(code, marketCode) {
+/**
+ * Canonical Yahoo symbol for an instrument code + Sharesight market code.
+ * Manual trade entry uses this so hand-entered rows land on the same ticker
+ * (and therefore the same parcels) as imported ones.
+ */
+export function buildYahooTicker(code, marketCode) {
   const c = String(code ?? '').trim()
   if (!c) return ''
   const m = String(marketCode ?? '')

@@ -54,13 +54,23 @@ export function normalizeCgtMethod(m) {
   return 'FIFO'
 }
 
+function toMillis(value) {
+  if (value && typeof value.toDate === 'function') return value.toDate().getTime()
+  if (value instanceof Date) return value.getTime()
+  const n = new Date(value ?? 0).getTime()
+  return Number.isFinite(n) ? n : 0
+}
+
 /**
  * Normalise a Firestore transaction document into engine input.
+ * Soft-deleted documents (`deleted: true`) are dropped.
+ *
  * @param {{ id: string, data?: () => object } | { id?: string } & object} doc
  */
 export function normalizeFirestoreTransaction(doc) {
   const raw =
     doc && typeof doc.data === 'function' ? { id: doc.id, ...doc.data() } : { ...doc }
+  if (raw.deleted === true) return null
   const id = raw.id ?? doc?.id ?? ''
   const date =
     raw.executedAt && typeof raw.executedAt.toDate === 'function'
@@ -70,10 +80,13 @@ export function normalizeFirestoreTransaction(doc) {
   const st = String(raw.sharesightType ?? '').toLowerCase()
   const ticker = raw.ticker != null ? String(raw.ticker) : ''
   const market = raw.market != null ? String(raw.market) : ''
-  const rowIndex =
+  const hasRowIndex =
     raw.rowIndex != null && Number.isFinite(Number(raw.rowIndex))
-      ? Number(raw.rowIndex)
-      : 0
+  const rowIndex = hasRowIndex ? Number(raw.rowIndex) : 0
+  // Imported rows replay in spreadsheet order; manual rows have no row index,
+  // so they sort after same-day imported rows and then by creation time.
+  const sequence = hasRowIndex ? Number(raw.rowIndex) : Number.MAX_SAFE_INTEGER
+  const createdAtMs = toMillis(raw.createdAt)
 
   const q = Number(raw.quantity)
   const qtyDelta = raw.quantityDelta != null ? Number(raw.quantityDelta) : undefined
@@ -99,6 +112,8 @@ export function normalizeFirestoreTransaction(doc) {
       quantity: q,
       totalCostAud,
       rowIndex,
+      sequence,
+      createdAtMs,
     }
   }
   if (kind === 'SELL' || st === 'sell') {
@@ -115,6 +130,8 @@ export function normalizeFirestoreTransaction(doc) {
       quantity: q,
       netProceedsAud: Number.isFinite(netProceedsAud) ? netProceedsAud : 0,
       rowIndex,
+      sequence,
+      createdAtMs,
     }
   }
   if (st === 'split' || st === 'consolidation') {
@@ -127,6 +144,8 @@ export function normalizeFirestoreTransaction(doc) {
       market,
       quantityDelta: qtyDelta,
       rowIndex,
+      sequence,
+      createdAtMs,
     }
   }
   if (st === 'return_of_capital') {
@@ -139,6 +158,8 @@ export function normalizeFirestoreTransaction(doc) {
       market,
       amountAud,
       rowIndex,
+      sequence,
+      createdAtMs,
     }
   }
   return null
@@ -153,9 +174,12 @@ export function sortTransactionsForReplay(transactions) {
     const ta = a.date?.getTime?.() ?? 0
     const tb = b.date?.getTime?.() ?? 0
     if (ta !== tb) return ta - tb
-    const ra = a.rowIndex ?? 0
-    const rb = b.rowIndex ?? 0
-    if (ra !== rb) return ra - rb
+    const sa = a.sequence ?? a.rowIndex ?? 0
+    const sb = b.sequence ?? b.rowIndex ?? 0
+    if (sa !== sb) return sa - sb
+    const ca = a.createdAtMs ?? 0
+    const cb = b.createdAtMs ?? 0
+    if (ca !== cb) return ca - cb
     return String(a.id ?? '').localeCompare(String(b.id ?? ''))
   })
   return copy

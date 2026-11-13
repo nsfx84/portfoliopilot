@@ -5,7 +5,8 @@ import {
   buildParcelsFromTransactions,
   parseSharesightAllTradesReport,
 } from '../lib/sharesightImporter.js'
-import { replaceUserTransactionsAndParcels } from '../lib/userData.js'
+import { rebuildParcelsForUser } from '../lib/rebuildParcels.js'
+import { replaceSharesightTransactions } from '../lib/userData.js'
 
 const aud = new Intl.NumberFormat('en-AU', {
   style: 'currency',
@@ -95,15 +96,15 @@ export function Import() {
     setError('')
     setSaving(true)
     setSaveOk(false)
-    setProgress('Saving to Firestore…')
+    setProgress('Saving transactions…')
     try {
-      await replaceUserTransactionsAndParcels(
-        user.uid,
-        parseResult.transactions,
-        built.parcels,
-      )
+      await replaceSharesightTransactions(user.uid, parseResult.transactions)
+      setProgress('Rebuilding parcels…')
+      const { parcelCount, holdingCount } = await rebuildParcelsForUser(user.uid)
       setSaveOk(true)
-      setProgress('Import saved.')
+      setProgress(
+        `Import saved — ${parcelCount} parcels across ${holdingCount} holdings.`,
+      )
     } catch (err) {
       setError(err?.message ?? 'Save failed.')
       setProgress('')
@@ -122,7 +123,8 @@ export function Import() {
           Upload an <span className="font-mono text-slate-400">All Trades</span>{' '}
           XLSX export. We read the <span className="font-mono">Combined</span>{' '}
           sheet and rebuild parcels with FIFO. Saving replaces your existing
-          imported transactions and parcels for this account.
+          Sharesight-imported transactions, then rebuilds parcels from the whole
+          ledger. Manually entered trades are kept.
         </p>
       </div>
 
