@@ -16,8 +16,24 @@ import {
   sortTransactionsForReplay,
 } from '../lib/cgt.js'
 import { buildCgtPdfReportData, exportCgtPdf } from '../lib/cgtSchedulePdf.js'
+import {
+  currentFinancialYearMelbourne,
+  financialYearForDate,
+} from '../lib/manualTrades.js'
 
-const FY_OPTIONS = [2020, 2021, 2022, 2023, 2024, 2025, 2026]
+/** FYs from the earliest transaction up to the current FY, newest first. */
+function buildFyOptions(transactions, currentFy) {
+  let earliest = currentFy
+  for (const t of transactions) {
+    const d = t.date instanceof Date ? t.date : new Date(t.date)
+    if (Number.isNaN(d.getTime())) continue
+    const y = financialYearForDate(d)
+    if (y < earliest) earliest = y
+  }
+  const out = []
+  for (let y = currentFy; y >= earliest; y--) out.push(y)
+  return out
+}
 
 const aud = new Intl.NumberFormat('en-AU', {
   style: 'currency',
@@ -47,8 +63,8 @@ function hasSalesInFinancialYear(transactions, fy) {
   )
 }
 
-function findPriorFyWithSales(currentFy, transactions) {
-  for (let y = currentFy - 1; y >= FY_OPTIONS[0]; y--) {
+function findPriorFyWithSales(currentFy, transactions, earliestFy) {
+  for (let y = currentFy - 1; y >= earliestFy; y--) {
     if (hasSalesInFinancialYear(transactions, y)) return y
   }
   return null
@@ -130,7 +146,8 @@ export function CgtReport() {
   const [txLoading, setTxLoading] = useState(true)
   const [parcelRows, setParcelRows] = useState([])
   const [parcelsLoading, setParcelsLoading] = useState(true)
-  const [fy, setFy] = useState(2026)
+  const [currentFy] = useState(() => currentFinancialYearMelbourne())
+  const [fy, setFy] = useState(currentFy)
   const [method, setMethod] = useState('FIFO')
   const [priorLosses, setPriorLosses] = useState(0)
   const [priceBundle, setPriceBundle] = useState(null)
@@ -227,14 +244,20 @@ export function CgtReport() {
     [cgtTxs, fy, priorLosses],
   )
 
+  const fyOptions = useMemo(
+    () => buildFyOptions(cgtTxs, currentFy),
+    [cgtTxs, currentFy],
+  )
+  const earliestFy = fyOptions[fyOptions.length - 1]
+
   const priorFyWithSales = useMemo(
-    () => findPriorFyWithSales(fy, cgtTxs),
-    [fy, cgtTxs],
+    () => findPriorFyWithSales(fy, cgtTxs, earliestFy),
+    [fy, cgtTxs, earliestFy],
   )
 
   const anyOtherFySales = useMemo(() => {
-    return FY_OPTIONS.some((y) => y !== fy && hasSalesInFinancialYear(cgtTxs, y))
-  }, [cgtTxs, fy])
+    return fyOptions.some((y) => y !== fy && hasSalesInFinancialYear(cgtTxs, y))
+  }, [cgtTxs, fy, fyOptions])
 
   const uniqueTickers = useMemo(() => {
     const s = new Set(parcelRows.map((p) => p.ticker).filter(Boolean))
@@ -399,7 +422,7 @@ export function CgtReport() {
                 backgroundSize: '0.9rem',
               }}
             >
-              {FY_OPTIONS.map((y) => (
+              {fyOptions.map((y) => (
                 <option key={y} value={y}>
                   {fyLabel(y)}
                 </option>

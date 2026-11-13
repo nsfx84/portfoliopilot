@@ -5,6 +5,7 @@ import {
   defaultCurrencyForMarket,
   emptyTradeForm,
   FALLBACK_MARKET,
+  currentFinancialYearMelbourne,
   financialYearForDate,
   formatTradeBreakdown,
   isoDateToLocalDate,
@@ -167,6 +168,16 @@ describe('todayInMelbourne', () => {
   it('uses the Melbourne calendar day, not the browser one', () => {
     // 2026-06-30T23:00Z is already 1 July in Melbourne (UTC+10).
     expect(todayInMelbourne(new Date('2026-06-30T23:00:00Z'))).toBe('2026-07-01')
+  })
+})
+
+describe('currentFinancialYearMelbourne', () => {
+  it('uses Melbourne time for the July boundary', () => {
+    expect(currentFinancialYearMelbourne(new Date('2026-11-13T00:00:00Z'))).toBe(2027)
+    expect(currentFinancialYearMelbourne(new Date('2026-06-15T00:00:00Z'))).toBe(2026)
+    // 30 Jun 2026 15:00 UTC is already 1 Jul 01:00 in Melbourne (AEST, UTC+10)
+    expect(currentFinancialYearMelbourne(new Date('2026-06-30T15:00:00Z'))).toBe(2027)
+    expect(currentFinancialYearMelbourne(new Date('2026-06-30T13:00:00Z'))).toBe(2026)
   })
 })
 

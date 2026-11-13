@@ -89,6 +89,21 @@ export function financialYearForDate(d) {
   return dt.getMonth() >= 6 ? dt.getFullYear() + 1 : dt.getFullYear()
 }
 
+/**
+ * Current Australian FY as observed in Melbourne, regardless of the browser's
+ * time zone. Jul–Dec → year + 1, Jan–Jun → year.
+ */
+export function currentFinancialYearMelbourne(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-AU', {
+    timeZone: 'Australia/Melbourne',
+    year: 'numeric',
+    month: 'numeric',
+  }).formatToParts(now)
+  const year = Number(parts.find((p) => p.type === 'year').value)
+  const month = Number(parts.find((p) => p.type === 'month').value)
+  return month >= 7 ? year + 1 : year
+}
+
 function toNumber(value) {
   const trimmed = String(value ?? '').trim()
   if (trimmed === '') return null
